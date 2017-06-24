@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!--<script src="//unpkg.com/3d-force-graph/dist/3d-force-graph.min.js"></script>-->
+    <script src="3d-force-graph.js"></script>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<h2>LookitUp <input type="text" placeholder="abate" id="myText">
+    <button type="button" onclick="loadXMLDoc(getValue())"><i class="fa fa-hand-o-right"></i></button></h2>
+
+
+<p id="demo"></p>
+<!--<svg width="960" height="500"></svg>-->
+<script src="//d3js.org/d3.v4.min.js"></script>
+<div></div>
+</body>
+<style>
+    body{
+        background: black;
+    }
+    h2,input,button{
+        z-index: 1000;
+    }
+    .fa-hand-o-right{
+        font-size: 150%;
+    }
+
+    h2{
+        position: relative;
+        margin-bottom: 30px;
+        color: white;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 100;
+        font-size: 22px;
+        font-family:'Helvetica Neue', Arial, sans-serif;
+    }
+
+    h2 span {
+        position: relative;
+        top: 13px;
+        padding: 0 10px;
+        background: #FFF;
+    }
+    button{
+        background-color: rgba(255,255,255,0);
+        border-radius: 15%;
+        color:wheat;
+        border: none;
+    }
+    input{
+        color:white;
+        height: 45px;
+        padding-left: 15px;
+        border: none;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        background: rgba(255,255,255,.2);
+    }
+    button:hover{
+        color:white;
+    }
+    canvas{
+        z-index: -1000;
+
+        top:0px;
+        position: absolute;
+    }
+    .node {
+        stroke: #000;
+        stroke-width: 1.5px;
+    }
+
+    .link {
+        stroke: #999;
+        stroke-width: 1.5px;
+    }
+
+    syn{
+        font-size: xx-large;
+    }
+</style>
+
+
+<script>
+
+    function getValue(){
+        return document.getElementById("myText").value
+    }
+    function loadXMLDoc(word) {
+
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                let data = this.responseText;
+                getSyn(data, word)
+//                document.getElementById("demo").innerHTML =
+//                    this.responseText;
+//
+//            }
+            }
+        };
+        let url = "http://www.dictionaryapi.com/api/v1/references/thesaurus/xml/"+word+"?key=6c05c945-0c53-464e-a4a7-647e9b207c81"
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
+
+    }
+
+    function getSyn(data,word) {
+        if(word!=""){
+        console.log(data);
+        let lst_1 = data.split("<syn>").filter(x=> {let yes = x.indexOf("</syn>")!=-1; return yes;});
+        let lst_2 = lst_1.map(x=> {return x.split("</syn>")[0]});
+        let str=""
+        lst_2.forEach(x=>{
+            str+=", "+x;
+        })
+        let lst_3 = str.split(", ");
+        lst_3.shift();
+        let lst = lst_3.filter(function(item, pos) {
+            return lst_3.indexOf(item) == pos;
+        })
+        lst = lst.filter(x=>{return (x.indexOf("(")==-1&&x.indexOf('<')==-1&&x.length<8)});
+        var index = lst.indexOf(word);
+        if(index>-1) lst.splice(index, 1);
+        console.log(lst)
+        if(lst.length==0){
+            console.log("typo",data)
+            let a = data.indexOf("<suggestion>"),b=data.indexOf("</suggestion>")
+            console.log(a,b);
+            let suggestion = data.slice(a+12,b);
+            console.log(suggestion);
+
+            loadXMLDoc(suggestion)
+        }
+        lst.push(word)
+        let list_node = lst.map(x=>{
+            return {"id":x,"name":x}
+        });
+        let list_link = lst.map(x=>{
+            return {"source":word,"target":x}
+        });
+        lst.forEach(x=>{
+            for(let i = 0;i<lst.length;i++){
+                list_link.push({"source":x,"target":lst[i]})
+            }
+        })
+        console.log(list_node);
+        draw_3D(list_node,list_link);
+        }
+    }
+
+
+function draw_3D(list_node,list_link){
+    var myGraph = ForceGraph3D();
+    //list_link = [{"source": "red", "target": "yellow"},{"source": "red", "target": "blue"},{"source": "red", "target": "green"}]
+    //list_node=[{"id": "red","name":"red"},{"id": "orange","name": "orange"},{"id": "yellow","name": "yellow"},{"id": "green","name": "green"},{"id": "blue","name": "blue"},{"id": "violet","name": "violet"}]
+    myGraph(document.querySelector("div")).graphData({"nodes": list_node,"links":list_link });
+}
+    loadXMLDoc("abate")
+
+</script>
+</html>
